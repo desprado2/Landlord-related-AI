@@ -33,7 +33,7 @@ void init(hand &h,const int turn,const bool clear_all=true)//initialize the hand
 {
 	memset(h.single,0,4*MAX_point),memset(h.pair,0,4*MAX_point),memset(h.tri,0,4*MAX_point),memset(h.straight,0,4*MAX_point),\
 	memset(h.strpair,0,4*MAX_point),memset(h.plane,0,4*MAX_point),memset(h.bomb,0,8*MAX_point),memset(h.remain,0,4*MAX_point);
-	if (clear_all)//clear_all:表示是否要初始化记牌器的信息 
+	if (clear_all)//clear_all:表示是否要初始化记牌器的信息
 	{
 		for (int i=1; i<=13; i++) h.rec[i]=4; h.rec[15]=h.rec[14]=1;
 		h.maximize_single=false;
