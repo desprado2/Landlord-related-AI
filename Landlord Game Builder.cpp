@@ -1,49 +1,53 @@
 #include<bits/stdc++.h>
-#define MAX_point 16  //×î´óµãÊı 
+#define MAX_point 16  //æœ€å¤§ç‚¹æ•° 
 #define GAME_OVER 66666.9999
 #define TRY_TO_WIN 6666.9999
 #define INF 1073741823
 using namespace std;
 
-int attach(int a){if (a==-1) return -1; return (a<=16)?1:2;}
+int attach(int a){if (a==-1) return -1; return (a<=16)?1:2;}//è¿”å›å¸¦ç‰Œçš„ç±»å‹
+
 struct action
 {
 	string cat;//catagory
 	int p1,p2,p3;//parameters
-	//²ÎÊıËµÃ÷:p1:±í´ïÕâÊÖÅÆµÄ´óĞ¡  p2:±í´ïÕâÊÖÅÆµÄÅÆĞÍ(ÀıÈçÈı´øµ½µ×ÊÇ´øµ¥»¹ÊÇ¶Ô»¹ÊÇ²»´ø,ÒÔ¼°Ë³×ÓµÄ³¤¶È)  p3:¶Ô·É»ú¶øÑÔ£¬¼ÇÂ¼ÅÆĞÍ(p2ÓÃÓÚ¼ÇÂ¼³¤¶ÈÁË) 
+	//å‚æ•°è¯´æ˜:p1:è¡¨è¾¾è¿™æ‰‹ç‰Œçš„å¤§å°  p2:è¡¨è¾¾è¿™æ‰‹ç‰Œçš„ç‰Œå‹(ä¾‹å¦‚ä¸‰å¸¦åˆ°åº•æ˜¯å¸¦å•è¿˜æ˜¯å¯¹è¿˜æ˜¯ä¸å¸¦,ä»¥åŠé¡ºå­çš„é•¿åº¦)  p3:å¯¹é£æœºè€Œè¨€ï¼Œè®°å½•ç‰Œå‹(p2ç”¨äºè®°å½•é•¿åº¦äº†) 
 	bool operator==(const action &a){return cat==a.cat&&p1==a.p1&&p2==a.p2&&p3==a.p3;}
 };
+
 struct hand
 {
-	double pts=-INF;//ÅÆÁ¦µÄÆÀ·Ö 
+	double pts=-INF;//ç‰ŒåŠ›çš„è¯„åˆ† 
 	int single[MAX_point]={0},pair[MAX_point]={0},tri[MAX_point]={0},bomb[MAX_point][2]={{0},{0}}\
 	    ,plane[MAX_point]={0},straight[MAX_point]={0},strpair[MAX_point]={0};
-	//tri/plane:´øÅÆ¡£-1:²»´ø; <=16:´øµ¥; >16:´ø¶Ô¡£ bomb:-1:²»´ø£¬1~16:´øµ¥,16~29:´ø¶Ô
-	int rec[MAX_point]={0};//rec:¼ÇÅÆÆ÷£¬¼ÇÂ¼ÍâÃæ»¹ÓĞÊ²Ã´ÅÆ;
+	//tri/plane:å¸¦ç‰Œã€‚-1:ä¸å¸¦; <=16:å¸¦å•; >16:å¸¦å¯¹ã€‚ bomb:-1:ä¸å¸¦ï¼Œ1~16:å¸¦å•,16~29:å¸¦å¯¹
+	int rec[MAX_point]={0};//rec:è®°ç‰Œå™¨ï¼Œè®°å½•å¤–é¢è¿˜æœ‰ä»€ä¹ˆç‰Œ;
 	int turn;//0:lord; 0->1->2->0
-	int policy;//policy=1:Õı³£½ø¹¥×´Ì¬; 2:É±ËÀ±ÈÈü×´Ì¬; -1:±»¶¯×´Ì¬; -2:²»³öÅÆ×´Ì¬(½öÏŞ¶·µØÖ÷±¨µ¥Ê±³öÏÖ) 
-	action minimal;//Èç¹û´òËãÉ±ËÀ±ÈÈü£¬±ØĞëºöÂÔÒ»¸ö×îĞ¡ÅÆ 
+	int policy;//policy=1:æ­£å¸¸è¿›æ”»çŠ¶æ€; 2:æ€æ­»æ¯”èµ›çŠ¶æ€; -1:è¢«åŠ¨çŠ¶æ€; -2:ä¸å‡ºç‰ŒçŠ¶æ€(ä»…é™æ–—åœ°ä¸»æŠ¥å•æ—¶å‡ºç°) 
+	action minimal;//å¦‚æœæ‰“ç®—æ€æ­»æ¯”èµ›ï¼Œå¿…é¡»å¿½ç•¥ä¸€ä¸ªæœ€å°ç‰Œ 
 	int remain[MAX_point]={0};
-	bool maximize_single=0;//ÊÇ·ñ½øÈë"±¨µ¥½ô¼±×´Ì¬" 
+	bool maximize_single=0;//æ˜¯å¦è¿›å…¥"æŠ¥å•ç´§æ€¥çŠ¶æ€" 
 } player[3];
+
 void init(hand &h,const int turn,const bool clear_all=true)//initialize the hand
 {
 	memset(h.single,0,4*MAX_point),memset(h.pair,0,4*MAX_point),memset(h.tri,0,4*MAX_point),memset(h.straight,0,4*MAX_point),\
 	memset(h.strpair,0,4*MAX_point),memset(h.plane,0,4*MAX_point),memset(h.bomb,0,8*MAX_point),memset(h.remain,0,4*MAX_point);
-	if (clear_all)//clear_all:±íÊ¾ÊÇ·ñÒª³õÊ¼»¯¼ÇÅÆÆ÷µÄĞÅÏ¢ 
+	if (clear_all)//clear_all:è¡¨ç¤ºæ˜¯å¦è¦åˆå§‹åŒ–è®°ç‰Œå™¨çš„ä¿¡æ¯ 
 	{
 		for (int i=1; i<=13; i++) h.rec[i]=4; h.rec[15]=h.rec[14]=1;
 		h.maximize_single=false;
 	}
 	h.turn=turn;
 }
-void d8g(const hand &a_optimal)//Êä³öÀíÅÆ½á¹û 
+void d8g(const hand &a_optimal)//è¾“å‡ºç†ç‰Œç»“æœ 
 {
 	for (int i=1; i<=15; i++) cout<<a_optimal.remain[i]<<' ';
 	cout<<"\n        S   P   T  ST  SP  PL  BB\n";
 	for (int i=1; i<=15; i++)
 		cout<<setw(4)<<i<<':'<<setw(4)<<a_optimal.single[i]<<setw(4)<<a_optimal.pair[i]<<setw(4)<<a_optimal.tri[i]<<setw(4)<<a_optimal.straight[i]<<setw(4)<<a_optimal.strpair[i]<<setw(4)<<a_optimal.plane[i]<<setw(4)<<a_optimal.bomb[i][0]<<endl;
 }
+
 void prcard(const int i)
 {
 	if (i<=8)cout<<setw(4)<<i+2;
@@ -55,6 +59,7 @@ void prcard(const int i)
 	if (i==14)cout<<setw(4)<<"J-";
 	if (i==15)cout<<setw(4)<<"J+";
 }
+
 void print(const int *h)
 {
 	int i;
@@ -62,7 +67,8 @@ void print(const int *h)
 	cout<<endl;
 	for (i=1; i<=15; i++)cout<<setw(4)<<h[i];cout<<endl;
 }
-int decipher(const hand &a,int *h,const bool print_needed=false)//°ÑÒÑ¾­ÀíºÃµÄÊÖÅÆ¶ÁÈ¡³öÀ´ 
+
+int decipher(const hand &a,int *h,const bool print_needed=false)//æŠŠå·²ç»ç†å¥½çš„æ‰‹ç‰Œè¯»å–å‡ºæ¥ 
 {
 	int i,j,k,cnt=0;
 	for (i=0; i<MAX_point; i++) h[i]=0;
@@ -102,6 +108,7 @@ int decipher(const hand &a,int *h,const bool print_needed=false)//°ÑÒÑ¾­ÀíºÃµÄÊÖ
 	if (print_needed) print(h);
 	return cnt;
 }
+
 double c_single(const hand &a)
 {
 	int i,s=0,m=0,l=0;
@@ -110,13 +117,14 @@ double c_single(const hand &a)
 	for (i=9; i<=11; i++) m+=a.single[i];//J~K:middle
 	l=a.single[13];//2:large
 	ret+=l-max(s,m)+1.2*a.single[14]+1.5*a.single[15];
-	if (a.single[12]>1) ret-=0.5*(a.single[12]-1);//µ¥ÕÅA²»´ó²»Ğ¡£¬²»¼Æ·Ö¡£µ«ÊÇÈç¹ûÓĞ¶àÕÅ£¬ÄÇÃ´Ó°Ïì²»ºÃ¡£ 
+	if (a.single[12]>1) ret-=0.5*(a.single[12]-1);//å•å¼ Aä¸å¤§ä¸å°ï¼Œä¸è®¡åˆ†ã€‚ä½†æ˜¯å¦‚æœæœ‰å¤šå¼ ï¼Œé‚£ä¹ˆå½±å“ä¸å¥½ã€‚ 
 	if (a.turn>0&&s>m&&s>=3&&m>0) ret-=1;
-	if (a.turn==2) ret+=0.5;//Í¬ÑùµÄµ¥ÅÆ£¬Èç¹û´¦ÓÚµØÖ÷ÉÏ¼Ò£¬ÄÇÃ´µ¥ÅÆ×´¿öÊµ¼ÊÉÏÂÔÓÅÓÚÁíÍâÁ½ÈË 
-	if (ret<=-2) ret*=1.5;//Èç¹ûµ¥ÅÆ×´¿öÌ«²î£¬ÄÇÃ´»áÔì³É·Ç³£¶ñÁÓµÄÓ°Ïì£¬Òò´ËÒª"·Å´ó"Õâ¸öÓ°Ïì 
-	if (ret>=2) ret-=1;//Èç¹ûµ¥ÅÆÌ«ºÃ£¬ÄÇÃ´Ã»ÓĞ±ØÒª£¬ËùÒÔ²»¹ÄÀøÕâÖÖÇé¿ö 
+	if (a.turn==2) ret+=0.5;//åŒæ ·çš„å•ç‰Œï¼Œå¦‚æœå¤„äºåœ°ä¸»ä¸Šå®¶ï¼Œé‚£ä¹ˆå•ç‰ŒçŠ¶å†µå®é™…ä¸Šç•¥ä¼˜äºå¦å¤–ä¸¤äºº 
+	if (ret<=-2) ret*=1.5;//å¦‚æœå•ç‰ŒçŠ¶å†µå¤ªå·®ï¼Œé‚£ä¹ˆä¼šé€ æˆéå¸¸æ¶åŠ£çš„å½±å“ï¼Œå› æ­¤è¦"æ”¾å¤§"è¿™ä¸ªå½±å“ 
+	if (ret>=2) ret-=1;//å¦‚æœå•ç‰Œå¤ªå¥½ï¼Œé‚£ä¹ˆæ²¡æœ‰å¿…è¦ï¼Œæ‰€ä»¥ä¸é¼“åŠ±è¿™ç§æƒ…å†µ 
 	return ret*0.75;
 }
+
 double c_pair(const hand &a)
 {
 	int i;
@@ -124,28 +132,33 @@ double c_pair(const hand &a)
 	for (i=1; i<=4; i++) ret-=a.pair[i];//3~6:small
 	for (i=5; i<=11; i++) ret+=a.pair[i]*(i-8)*0.25*0.8;//7~K:middle
 	for (i=12; i<=13; i++) ret+=a.pair[i];//1~2:large
-	if (ret<=-1.5) ret-=1.5;//"·Å´ó"Ì«²îµÄ¶Ô×ÓÇé¿ö 
-	if (ret>=1.5) ret-=1;//Í¬µ¥ÅÆ 
+	if (ret<=-1.5) ret-=1.5;//"æ”¾å¤§"å¤ªå·®çš„å¯¹å­æƒ…å†µ 
+	if (ret>=1.5) ret-=1;//åŒå•ç‰Œ 
 	return ret;
 }
-double pts_tri(const int i,const int SortofAttach)//µ¥¸ötripleµÄ¹À¼Û 
+
+double pts_tri(const int i,const int SortofAttach)//å•ä¸ªtripleçš„ä¼°ä»· 
 {
 	return (i<=7)?(SortofAttach==-1?0.4:0.5):(SortofAttach==-1?0.65:0.85);
 }
-double c_triple(const hand &a)//tripleµÄ×Ü¹À¼Û 
+double c_triple(const hand &a)//tripleçš„æ€»ä¼°ä»· 
 {
 	double ret=0;
 	for (int i=1; i<=13; i++) ret+=(a.tri[i]!=0)*pts_tri(i,a.tri[i]);
 	return ret;
 }
-double c_straight(const int len){return len/5.0*1.8;}//µ¥¸östraightµÄ¹À¼Û 
-double c_strpair(const int len){return len/3.0*1.8;}//µ¥¸östrpairµÄ¹À¼Û 
-double c_plane(const int attach){return (attach==-1?0.7:0.9);}//µ¥¸öplaneµÄ¹À¼Û,×¢Òâplane×÷ÎªÎÈ¶¨µÄ¹ıÅÆÊÖ¶Î(²»ÈİÒ×±»Ñ¹)£¬ÆÀ·Ö¸ßÓÚtriple 
-const double c_fours=1.8*6.0/5.0;//µ¥¸öËÄ´ø¶ş¹À¼Û 
-const double c_bomb=2.5;//µ¥¸öÕ¨µ¯¹À¼Û 
-double c_all(hand &a,const bool maximize_single)//¼ÆËã×ÜÅÆÁ¦; maximize_single=1:ÔÚµĞ·½±¨µ¥µÄÊ±ºò£¬ÒªÈÃµÚ¶ş´óµÄµ¥ÅÆ¾¡¿ÉÄÜ´ó¡£ 
+
+double c_straight(const int len){return len/5.0*1.8;}//å•ä¸ªstraightçš„ä¼°ä»· 
+
+double c_strpair(const int len){return len/3.0*1.8;}//å•ä¸ªstrpairçš„ä¼°ä»· 
+
+double c_plane(const int attach){return (attach==-1?0.7:0.9);}//å•ä¸ªplaneçš„ä¼°ä»·,æ³¨æ„planeä½œä¸ºç¨³å®šçš„è¿‡ç‰Œæ‰‹æ®µ(ä¸å®¹æ˜“è¢«å‹)ï¼Œè¯„åˆ†é«˜äºtriple 
+
+const double c_fours=1.8*6.0/5.0;//å•ä¸ªå››å¸¦äºŒä¼°ä»· 
+const double c_bomb=2.5;//å•ä¸ªç‚¸å¼¹ä¼°ä»· 
+
+double c_all(hand &a,const bool maximize_single)//è®¡ç®—æ€»ç‰ŒåŠ›; maximize_single=1:åœ¨æ•Œæ–¹æŠ¥å•çš„æ—¶å€™ï¼Œè¦è®©ç¬¬äºŒå¤§çš„å•ç‰Œå°½å¯èƒ½å¤§ã€‚ 
 {
-	//d8g(a);system("pause");
 	int i,j,k,turns=0;
 	
 	if (maximize_single)
@@ -160,18 +173,19 @@ double c_all(hand &a,const bool maximize_single)//¼ÆËã×ÜÅÆÁ¦; maximize_single=1:
 		for (i=i+1; i<=15; i++)
 			if (a.single[i]) break;
 		return -TRY_TO_WIN*(16-i);
-	}//ÌØÊâ´¦Àí±¨µ¥ 
-	//ÒÔÏÂÅĞ¶ÏÄÜ·ñÒ»´Î³öÍê 
+	}//ç‰¹æ®Šå¤„ç†æŠ¥å• 
+	
+	//ä»¥ä¸‹åˆ¤æ–­èƒ½å¦ä¸€æ¬¡å‡ºå®Œ 
 	for (i=1; i<=15; i++)
 		turns+=a.single[i]+a.pair[i]+(a.tri[i]!=0)+(a.bomb[i][0]!=0)+(a.plane[i]!=0)+(a.straight[i]!=0)+(a.strpair[i]!=0);
-	if (turns<=1) {a.policy=1; return GAME_OVER;}//Ò»´Î³öÍêµÄ±ØĞë×Ê´Å¡£
-	//ÒÔÏÂÅĞ²¿·Ö¶ÏÊÇ·ñÄÜ¹»Ö»Áô×î¶àÒ»ÊÖĞ¡ÅÆ¼´¿ÉÉ±ËÀ±ÈÈü¡£ 
-	int c,cc=0,tmp;//c:Ã¿¸öÅÆĞÍµÄ"¾»´óÅÆÊıÁ¿"(¾ø¶ÔÓÅÊÆµÄ´óÅÆÊıÁ¿-Ğ¡ÅÆÊıÁ¿); cc:ËùÓĞÅÆĞÍµÄĞ¡ÅÆÊıÁ¿ 
-	bool noBomb=1,fl=0;//nobomb:ÍâÃæÃ»ÓĞÍõÕ¨£¬ÆäËüÕ¨µ¯²»¿¼ÂÇ¡£ fl:¼ÇÂ¼ÄÜ·ñÉ±ËÀ±ÈÈü 
+	if (turns<=1) {a.policy=1; return GAME_OVER;}//ä¸€æ¬¡å‡ºå®Œçš„å¿…é¡»èµ„ç£ã€‚
+	//ä»¥ä¸‹åˆ¤éƒ¨åˆ†æ–­æ˜¯å¦èƒ½å¤Ÿåªç•™æœ€å¤šä¸€æ‰‹å°ç‰Œå³å¯æ€æ­»æ¯”èµ›ã€‚ 
+	int c,cc=0,tmp;//c:æ¯ä¸ªç‰Œå‹çš„"å‡€å¤§ç‰Œæ•°é‡"(ç»å¯¹ä¼˜åŠ¿çš„å¤§ç‰Œæ•°é‡-å°ç‰Œæ•°é‡); cc:æ‰€æœ‰ç‰Œå‹çš„å°ç‰Œæ•°é‡ 
+	bool noBomb=1,fl=0;//nobomb:å¤–é¢æ²¡æœ‰ç‹ç‚¸ï¼Œå…¶å®ƒç‚¸å¼¹ä¸è€ƒè™‘ã€‚ fl:è®°å½•èƒ½å¦æ€æ­»æ¯”èµ› 
 	action mins;
 	
 	if (a.rec[14]==1&&a.rec[15]==1) noBomb=0;
-	c=0;//ÕÒÈı´ø 
+	c=0;//æ‰¾ä¸‰å¸¦ 
 	for (i=13; i&&noBomb; i--) 
 		if (a.tri[i])
 		{
@@ -183,39 +197,39 @@ double c_all(hand &a,const bool maximize_single)//¼ÆËã×ÜÅÆÁ¦; maximize_single=1:
 		}
 	if (c<0) {cc-=c; mins.cat="tri",mins.p1=tmp,mins.p2=attach(a.tri[tmp]),mins.p3=0;}
 	
-	for (i=8; i&&noBomb; i--)//ÕÒË³×Ó 
+	for (i=8; i&&noBomb; i--)//æ‰¾é¡ºå­ 
 		if (a.straight[i]&&!(a.straight[i]>=7||a.straight[i]+i>=12)) {cc++; mins.cat="straight",mins.p1=i,mins.p2=a.straight[i],mins.p3=0;}
 	
-	c=0;//ÕÒ¶Ô
+	c=0;//æ‰¾å¯¹
 	for (i=13; i&&noBomb; i--) 
 		if (a.pair[i])
 		{
 			bool bigger=0;
 			for (j=i+1; j<=13; j++)
 				if (a.rec[j]>=2) {bigger=1; break;}
-			if (bigger) c-=a.pair[i],tmp=i;//Èç¹ûÓĞÄÜÑ¹ËÀiµÄÅÆ£¬ÔòËãĞ¡ÅÆ 
-			else if (!a.rec[i]>=2) c+=a.pair[i];//Èç¹ûÃ»ÓĞ±Èi´ó»òÕßÏàµÈµÄÅÆ£¬Ôò¼Ç×î´óÅÆ 
+			if (bigger) c-=a.pair[i],tmp=i;//å¦‚æœæœ‰èƒ½å‹æ­»içš„ç‰Œï¼Œåˆ™ç®—å°ç‰Œ 
+			else if (!a.rec[i]>=2) c+=a.pair[i];//å¦‚æœæ²¡æœ‰æ¯”iå¤§æˆ–è€…ç›¸ç­‰çš„ç‰Œï¼Œåˆ™è®°æœ€å¤§ç‰Œ 
 		}
 	if (c<0) {cc-=c; mins.cat="pair",mins.p1=tmp,mins.p2=mins.p3=0;}
 	
-	c=0;//ÕÒµ¥
+	c=0;//æ‰¾å•
 	for (i=15; i&&noBomb; i--) 
 		if (a.single[i])
 		{
 			bool bigger=0;
 			for (j=i+1; j<=15; j++)
 				if (a.rec[j]) {bigger=1; break;}
-			if (bigger) c-=a.single[i],tmp=i;//Èç¹ûÓĞÄÜÑ¹ËÀiµÄÅÆ£¬ÔòËãĞ¡ÅÆ 
-			else if (!a.rec[i]) c+=a.single[i];//Èç¹ûÃ»ÓĞ±Èi´ó»òÕßÏàµÈµÄÅÆ£¬Ôò¼Ç×î´óÅÆ 
+			if (bigger) c-=a.single[i],tmp=i;//å¦‚æœæœ‰èƒ½å‹æ­»içš„ç‰Œï¼Œåˆ™ç®—å°ç‰Œ 
+			else if (!a.rec[i]) c+=a.single[i];//å¦‚æœæ²¡æœ‰æ¯”iå¤§æˆ–è€…ç›¸ç­‰çš„ç‰Œï¼Œåˆ™è®°æœ€å¤§ç‰Œ 
 		}
 	if (c<0) {cc-=c; mins.cat="single",mins.p1=tmp,mins.p2=mins.p3=0;}
 	
-	for (i=1; i<=14; i++)//ÕÒÕ¨µ¯£¬Ò»¸öÕ¨µ¯¿ÉÒÔ½â¾öÒ»¸öĞ¡ÅÆÎÊÌâ 
+	for (i=1; i<=14; i++)//æ‰¾ç‚¸å¼¹ï¼Œä¸€ä¸ªç‚¸å¼¹å¯ä»¥è§£å†³ä¸€ä¸ªå°ç‰Œé—®é¢˜ 
 		if (a.bomb[i][0]==-1) cc--;
 	
-	if (noBomb&&cc<=1) {a.policy=2,a.minimal=mins; fl=1;}//ÄÜÖÕ½á±ÈÈüµÄ±ØĞë×Ê´Å¡£
+	if (noBomb&&cc<=1) {a.policy=2,a.minimal=mins; fl=1;}//èƒ½ç»ˆç»“æ¯”èµ›çš„å¿…é¡»èµ„ç£ã€‚
 	
-	//Õı³£¼ÆËã
+	//ä»¥ä¸‹ä¸ºæ­£å¸¸è®¡ç®—
 	
 	double ret=c_single(a)+c_pair(a)+c_triple(a)+(fl?TRY_TO_WIN:0);
 	for (i=1; i<=14; i++)
@@ -230,8 +244,10 @@ double c_all(hand &a,const bool maximize_single)//¼ÆËã×ÜÅÆÁ¦; maximize_single=1:
 	return ret;
 }
 
-hand a_optimal;//ÓÉÓÚattribute()Ã»ÓĞĞ´ºÃ½Ó¿Ú, Õâ¸öÈ«¾Ö±äÁ¿ÓÃÀ´´æ´¢attributeºó×îÓÅÅÆĞÍ×éºÏ 
-bool in_interval(int a,int lh,int rh){return a>=lh&&a<=rh;}//ÅĞ¶ÏaÊÇ·ñÔÚÇø¼ä[lh,rh]ÄÚ 
+hand a_optimal;//ç”±äºattribute()æ²¡æœ‰å†™å¥½æ¥å£, è¿™ä¸ªå…¨å±€å˜é‡ç”¨æ¥å­˜å‚¨attributeåæœ€ä¼˜ç‰Œå‹ç»„åˆ 
+
+bool in_interval(int a,int lh,int rh){return a>=lh&&a<=rh;}//åˆ¤æ–­aæ˜¯å¦åœ¨åŒºé—´[lh,rh]å†… 
+
 void attribute(hand cur,int step,const bool maximize_single=false)
 //case step:1:straight; 2:strpair; 3:bomb; 4:plane; 5:triple; 6:single and pair 
 {
@@ -259,7 +275,7 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 					temp.straight[i]=c;
 					if (c>=5){attribute(temp,step,maximize_single);fl=1;}
 				}
-				if (fl&&cur.remain[i]==1) break;//Èç¹ûÕâ¸öË³×ÓµÄ¿ªÍ·ÊÇµ¥ÅÆ£¬ÄÇ²»ĞèÒª¿¼ÂÇÓÃÏÂÒ»¸öÅÆ¿ªÍ·µÄÇé¿öÁË(ÀıÈçÓĞ345678¿Ï¶¨²»»á´ò45678) 
+				if (fl&&cur.remain[i]==1) break;//å¦‚æœè¿™ä¸ªé¡ºå­çš„å¼€å¤´æ˜¯å•ç‰Œï¼Œé‚£ä¸éœ€è¦è€ƒè™‘ç”¨ä¸‹ä¸€ä¸ªç‰Œå¼€å¤´çš„æƒ…å†µäº†(ä¾‹å¦‚æœ‰345678è‚¯å®šä¸ä¼šæ‰“45678) 
 			}
 			break;
 		}
@@ -287,13 +303,13 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 		{
 			attribute(cur,step+1,maximize_single);
 			int i,j,k;
-			int s[3],p[3],c;//s[0],s[1]:´ø³öµÄµ¥ÅÆ,s[2]:ÓĞÃ»ÓĞ×ã¹»µ¥ÅÆ¸øÎÒ´ø,µ±s[2]==2Ê±±íÊ¾ÖÁÉÙÓĞÁ½ÕÅµ¥ÅÆ£¬ÔòÔÊĞíËÄ´ø¶ş 
+			int s[3],p[3],c;//s[0],s[1]:å¸¦å‡ºçš„å•ç‰Œ,s[2]:æœ‰æ²¡æœ‰è¶³å¤Ÿå•ç‰Œç»™æˆ‘å¸¦,å½“s[2]==2æ—¶è¡¨ç¤ºè‡³å°‘æœ‰ä¸¤å¼ å•ç‰Œï¼Œåˆ™å…è®¸å››å¸¦äºŒ 
 			c=0;
 			for (i=1; i<=12&&c<2; i++)
 				if (cur.remain[i]==1) s[c]=i,c++;
 			s[2]=c;
 			c=0;
-			for (i=1; i<=12&&c<2; i++)//p:´ø³öµÄ¶Ô×Ó,ÒâÒåÍ¬ÉÏ 
+			for (i=1; i<=12&&c<2; i++)//p:å¸¦å‡ºçš„å¯¹å­,æ„ä¹‰åŒä¸Š 
 				if (cur.remain[i]==2) p[c]=i,c++;
 			p[2]=c;
 			
@@ -303,21 +319,21 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 				{
 					temp=cur,temp.remain[i]-=4;
 					temp.bomb[i][0]=-1;
-					attribute(temp,step,maximize_single);//Õ¨µ¯ 
+					attribute(temp,step,maximize_single);//ç‚¸å¼¹ 
 					if (s[2]==2)
 					{
 						temp=cur,temp.remain[i]-=4;
 						temp.remain[s[0]]--,temp.remain[s[1]]--,temp.bomb[i][0]=s[0],temp.bomb[i][1]=s[1];
-						attribute(temp,step,maximize_single);//ËÄ´ø¶ş£¬µ¥ÅÆ 
+						attribute(temp,step,maximize_single);//å››å¸¦äºŒï¼Œå•ç‰Œ 
 					}
 					if (p[2]==2)
 					{
 						temp=cur,temp.remain[i]-=4;
 						temp.remain[p[0]]-=2,temp.remain[p[1]]-=2,temp.bomb[i][0]=p[0]+16,temp.bomb[i][1]=p[1]+16;
-						attribute(temp,step,maximize_single);//ËÄ´ø¶ş£¬¶Ô×Ó 
+						attribute(temp,step,maximize_single);//å››å¸¦äºŒï¼Œå¯¹å­ 
 					}
 				}
-			if (cur.remain[14]&&cur.remain[15])//ÍõÕ¨ 
+			if (cur.remain[14]&&cur.remain[15])//ç‹ç‚¸ 
 			{
 				temp=cur;
 				temp.remain[14]--,temp.remain[15]--,temp.bomb[14][0]=-1;
@@ -346,7 +362,7 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 							temp.plane[lh]=-1;
 						attribute(temp,step,maximize_single);
 						
-						int s[6],p[6],cs=0,cp=0;//s:µ¥ÅÆ£¬p:¶Ô×Ó£¬cs:ÄÜÕÒµ½µÄµ¥ÅÆÊıÁ¿,cp:ÄÜÕÒµ½µÄ¶Ô×ÓÊıÁ¿¡£²Î¿¼ËÄ´ø¶şµÄ²Ù×÷¡£ 
+						int s[6],p[6],cs=0,cp=0;//s:å•ç‰Œï¼Œp:å¯¹å­ï¼Œcs:èƒ½æ‰¾åˆ°çš„å•ç‰Œæ•°é‡,cp:èƒ½æ‰¾åˆ°çš„å¯¹å­æ•°é‡ã€‚å‚è€ƒå››å¸¦äºŒçš„æ“ä½œã€‚ 
 						
 						for (k=1; k<=13&&cs<c; k++)
 							if (temp.remain[k]==1&&!in_interval(k,i,j-1))
@@ -380,11 +396,11 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 			}
 			break;
 		}
-		case 5://Èı´ø 
+		case 5://ä¸‰å¸¦ 
 		{
 		//	d8g(cur),system("pause");
 			int i,j;
-			//ÒÔÏÂÊÇÓÅÏÈ´øµ¥ÅÆµÄ´ò·¨
+			//ä»¥ä¸‹æ˜¯ä¼˜å…ˆå¸¦å•ç‰Œçš„æ‰“æ³•
 			hand temp=cur;
 			for (i=1; i<13; i++)
 				if (cur.remain[i]>=3)
@@ -399,9 +415,9 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 					if (fl) {temp.tri[i]=j+16,temp.remain[j]-=2; continue;}
 					temp.tri[i]=-1;
 				}
-			attribute(temp,step+1,maximize_single);//²»¿¼ÂÇÈıÕÅ2 
-			//Ë¼Â·£º±È2Ğ¡µÄËùÓĞÈıÕÅ±ØĞëÒÔÈı´øĞÎÊ½³ö(×¢Òâ´ËÇ°ÒÑ¾­ËÑÍêÆäËüÅÆĞÍ£¬Òò´ËÔÚÕâÀï»¹ÓĞÈıÕÅµÄ»°£¬²»ÊÇÈı´ø¾ÍÊÇµ¥/¶Ô)¡£ 
-			if (cur.remain[13]>=3)//¿¼ÂÇÈıÕÅ2 
+			attribute(temp,step+1,maximize_single);//ä¸è€ƒè™‘ä¸‰å¼ 2 
+			//æ€è·¯ï¼šæ¯”2å°çš„æ‰€æœ‰ä¸‰å¼ å¿…é¡»ä»¥ä¸‰å¸¦å½¢å¼å‡º(æ³¨æ„æ­¤å‰å·²ç»æœå®Œå…¶å®ƒç‰Œå‹ï¼Œå› æ­¤åœ¨è¿™é‡Œè¿˜æœ‰ä¸‰å¼ çš„è¯ï¼Œä¸æ˜¯ä¸‰å¸¦å°±æ˜¯å•/å¯¹)ã€‚ 
+			if (cur.remain[13]>=3)//è€ƒè™‘ä¸‰å¼ 2 
 			{
 				temp.remain[13]-=3;
 				bool fl=0;
@@ -416,7 +432,7 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 				}
 				attribute(temp,step+1,maximize_single);
 			}
-			//ÒÔÏÂÊÇÓÅÏÈ´øÒ»¶ÔµÄ´ò·¨
+			//ä»¥ä¸‹æ˜¯ä¼˜å…ˆå¸¦ä¸€å¯¹çš„æ‰“æ³•
 			temp=cur; 
 			for (i=1; i<13; i++)
 				if (cur.remain[i]>=3)
@@ -455,7 +471,7 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 			int i,j; bool fl=0;
 			hand temp;
 			for (j=1; j<13; j++)
-				if (cur.remain[j]>=3) return;//Õâ¸öÊ±ºò»¹ÓĞĞ¡ÓÚ2µÄÈıÕÅÏàÍ¬ÅÆ£¬¿Ï¶¨²»ÊÇ×îÓÅµÄ£¬²»¿¼ÂÇ 
+				if (cur.remain[j]>=3) return;//è¿™ä¸ªæ—¶å€™è¿˜æœ‰å°äº2çš„ä¸‰å¼ ç›¸åŒç‰Œï¼Œè‚¯å®šä¸æ˜¯æœ€ä¼˜çš„ï¼Œä¸è€ƒè™‘ 
 			
 			for (i=1; i<13; i++)
 				if (cur.remain[i]==1) cur.single[i]=1,cur.remain[i]=0,fl=1;
@@ -463,7 +479,7 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 			for (i=14; i<=15; i++)
 				if (cur.remain[i]==1) cur.single[i]=1,cur.remain[i]=0,fl=1;
 			temp=cur;
-			switch(temp.remain[13])//Ã¶¾Ù2 
+			switch(temp.remain[13])//æšä¸¾2 
 			{
 				case 0:{attribute(temp,step+1,maximize_single); break;}
 				case 1:{temp.single[13]=1,temp.remain[13]=0; attribute(temp,step+1,maximize_single); break;}
@@ -495,7 +511,8 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 		}
 	}
 }
-void reattribute(hand &h,const bool maximize_single=false)//¶ÔÒÑ¾­ÀíºÃµ«ÊÇ´ò³öÁËÈô¸ÉÕÅÅÆµÄÊÖÅÆÖØĞÂÀíÅÆ 
+
+void reattribute(hand &h,const bool maximize_single=false)//å¯¹å·²ç»ç†å¥½ä½†æ˜¯æ‰“å‡ºäº†è‹¥å¹²å¼ ç‰Œçš„æ‰‹ç‰Œé‡æ–°ç†ç‰Œ 
 {
 	int temp[MAX_point];
 	a_optimal.pts=-INF;
@@ -504,8 +521,8 @@ void reattribute(hand &h,const bool maximize_single=false)//¶ÔÒÑ¾­ÀíºÃµ«ÊÇ´ò³öÁË
 	h=a_optimal;//if (maximize_single){for (int i=1; i<=15; i++)cout<<temp[i]<<' ';cout<<endl;d8g(h);system("pause");}
 }
 
-bool find_single(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0})//ÕÒµ½lh~rhÖĞ×îĞ¡µÄµ¥ÅÆ 
-//minimal:ÉáÈ¥µÄ×îĞ¡ÅÆĞÍ
+bool find_single(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0})//æ‰¾åˆ°lh~rhä¸­æœ€å°çš„å•ç‰Œ 
+//minimal:èˆå»çš„æœ€å°ç‰Œå‹
 {
 	action t;
 	for (int i=lh; i<=rh; i++)
@@ -516,8 +533,9 @@ bool find_single(const hand &h,action &temp,int lh,int rh,const action &minimal=
 		}
 	return 0;
 }
+
 bool find_pair(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0})
-//minimal:ÉáÈ¥µÄ×îĞ¡ÅÆĞÍ
+//minimal:èˆå»çš„æœ€å°ç‰Œå‹
 {
 	action t;
 	for (int i=lh; i<=rh; i++)
@@ -528,8 +546,9 @@ bool find_pair(const hand &h,action &temp,int lh,int rh,const action &minimal={"
 		}
 	return 0;
 }
+
 bool find_straight(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0},const int pat=0)
-//minimal:ÉáÈ¥µÄ×îĞ¡ÅÆĞÍ;pat:Ö¸¶¨³¤¶È 
+//minimal:èˆå»çš„æœ€å°ç‰Œå‹;pat:æŒ‡å®šé•¿åº¦ 
 {
 	action t;
 	for (int i=lh; i<=rh; i++)
@@ -541,7 +560,8 @@ bool find_straight(const hand &h,action &temp,int lh,int rh,const action &minima
 		}
 	return 0;
 }
-bool find_strpair(const hand &h,action &temp,int lh,int rh,const int pat=0)//pat:Ö¸¶¨³¤¶È 
+
+bool find_strpair(const hand &h,action &temp,int lh,int rh,const int pat=0)//pat:æŒ‡å®šé•¿åº¦ 
 {
 	for (int i=lh; i<=rh; i++)
 		if (h.strpair[i])
@@ -553,7 +573,7 @@ bool find_strpair(const hand &h,action &temp,int lh,int rh,const int pat=0)//pat
 	return 0;
 }
 bool find_tri(const hand &h,action &temp,int lh,int rh,const action &minimal={"N",0,0,0},const int pat=0)
-//minimalÍ¬ÉÏ;pat:´øÅÆµÄÀàĞÍ(-1,1,2) 
+//minimalåŒä¸Š;pat:å¸¦ç‰Œçš„ç±»å‹(-1,1,2) 
 {
 	action t;
 	for (int i=lh; i<=rh; i++)
@@ -565,18 +585,20 @@ bool find_tri(const hand &h,action &temp,int lh,int rh,const action &minimal={"N
 		}
 	return 0;
 }
-bool feigei(const hand &h,action &temp,int lh,int rh)
+
+bool feigei(const hand &h,action &temp,int lh,int rh)//å¯»æ‰¾é£æœº
 {
 	int len,i,j;
 	for (i=lh; i<=rh; i++)
 		if (h.plane[i]!=0)
 		{
-			for (j=i,len=0; h.plane[j]!=0; j++) len++;//len:Õâ¸ö·É»úµÄ³¤¶È 
+			for (j=i,len=0; h.plane[j]!=0; j++) len++;//len:è¿™ä¸ªé£æœºçš„é•¿åº¦ 
 			temp={"plane",i,len,attach(h.plane[i])};
 			return 1;
 		}
 	return 0;
 }
+
 bool find_bomb(const hand &h,action &temp,int lh,int rh)
 {
 	for (int i=lh; i<=rh; i++)
@@ -587,8 +609,9 @@ bool find_bomb(const hand &h,action &temp,int lh,int rh)
 		}
 	return 0;
 }
+
 bool find_fours(const hand &h,action &temp,int lh,int rh,const int pat=0)
-//pat:´øÅÆµÄÀàĞÍ(1,2) 
+//pat:å¸¦ç‰Œçš„ç±»å‹(1,2) 
 {
 	for (int i=lh; i<=rh; i++)
 		if (h.bomb[i][0]>0)
@@ -599,7 +622,8 @@ bool find_fours(const hand &h,action &temp,int lh,int rh,const int pat=0)
 		}
 	return 0;
 }
-action decide_off(hand &h)//on the offensive; -1:±»¶¯³öÅÆ×´Ì¬ÏÂÒª¿¼ÂÇ¸ø¶ÓÓÑ¹ıÅÆ,1:Õı³£³öÅÆ,2:¶ÔÊÖ±¨µ¥/ÆóÍ¼É±ËÀ±ÈÈü 
+
+action decide_off(hand &h)//on the offensive; -1:è¢«åŠ¨å‡ºç‰ŒçŠ¶æ€ä¸‹è¦è€ƒè™‘ç»™é˜Ÿå‹è¿‡ç‰Œ,1:æ­£å¸¸å‡ºç‰Œ,2:å¯¹æ‰‹æŠ¥å•/ä¼å›¾æ€æ­»æ¯”èµ› 
 {
 	int i,j,k;
 	action temp;
@@ -616,7 +640,7 @@ action decide_off(hand &h)//on the offensive; -1:±»¶¯³öÅÆ×´Ì¬ÏÂÒª¿¼ÂÇ¸ø¶ÓÓÑ¹ıÅÆ,
 			for (i=temp.p1,j=1; j<=temp.p2; j++,i++) h.plane[i]=0;
 			return temp;
 		}
-		//Ğ¡ÅÆ³¢ÊÔ½áÊø 
+		//å°ç‰Œå°è¯•ç»“æŸ 
 		if (find_tri(h,temp,9,12))                          {h.tri[temp.p1]=0; return temp;}//triple J~A
 		if (find_strpair(h,temp,9,10))                  {h.strpair[temp.p1]=0; return temp;}//straight pairs J~Q
 		if (find_fours(h,temp,1,13)) {h.bomb[temp.p1][0]=h.bomb[temp.p1][1]=0; return temp;}//all fours
@@ -632,7 +656,7 @@ action decide_off(hand &h)//on the offensive; -1:±»¶¯³öÅÆ×´Ì¬ÏÂÒª¿¼ÂÇ¸ø¶ÓÓÑ¹ıÅÆ,
 		if (find_single(h,temp,13,15))                   {h.single[temp.p1]--; return temp;}//single 2,Jokers
 		if (find_bomb(h,temp,1,14))                     {h.bomb[temp.p1][0]=0; return temp;}//all bombs
 	}
-	else if (h.policy==2)//Èç¹û¾ö¶¨Ò»²¨Á÷£¬ÄÇÃ´²»ÄÜ´ò×îĞ¡µÄÅÆ(minimal)¶øÒªÁô×Å×îºó´ò¡£ÆäËûÅÆÕÕ³£´ò¡£ 
+	else if (h.policy==2)//å¦‚æœå†³å®šä¸€æ³¢æµï¼Œé‚£ä¹ˆä¸èƒ½æ‰“æœ€å°çš„ç‰Œ(minimal)è€Œè¦ç•™ç€æœ€åæ‰“ã€‚å…¶ä»–ç‰Œç…§å¸¸æ‰“ã€‚ 
 	{//cout<<"E"<<h.minimal.cat<<' '<<h.minimal.p1;system("pause");
 		if (find_strpair(h,temp,1,10))                  {h.strpair[temp.p1]=0; return temp;}
 		if (feigei(h,temp,1,11))//plane 3~K
@@ -650,7 +674,7 @@ action decide_off(hand &h)//on the offensive; -1:±»¶¯³öÅÆ×´Ì¬ÏÂÒª¿¼ÂÇ¸ø¶ÓÓÑ¹ıÅÆ,
 		}
 		if (find_bomb(h,temp,1,14))                     {h.bomb[temp.p1][0]=0; return temp;}
 	}
-	else//·ÀÊØ³öÅÆµÄ»°Ö±½Ó¸ø×îĞ¡ÅÆ 
+	else//é˜²å®ˆå‡ºç‰Œçš„è¯ç›´æ¥ç»™æœ€å°ç‰Œ 
 	{
 		if (find_single(h,temp,1,4)) 				     {h.single[temp.p1]--; return temp;}
 		for (i=5; i<=11; i++)
@@ -668,8 +692,10 @@ action decide_off(hand &h)//on the offensive; -1:±»¶¯³öÅÆ×´Ì¬ÏÂÒª¿¼ÂÇ¸ø¶ÓÓÑ¹ıÅÆ,
 		if (find_bomb(h,temp,1,14))                     {h.bomb[temp.p1][0]=0; return temp;}
 	}
 }
-const double BIG_bonus=1.1;
-double is_big(const action &a)//¶ÔµĞ·½´ò³öµÄÅÆÊÇ·ñÓĞÇÀ¶áÖ÷¶¯È¨µÄÒâÍ¼(e.g. ÊÇ·ñÊÇ´óÅÆ)½øĞĞÅĞ¶Ï 
+
+const double BIG_bonus=1.1;//æ‰“å‡ºä¸€æ‰‹å¤§ç‰Œçš„åˆ†æ•°åŠ æˆ
+
+double is_big(const action &a)//å¯¹æ•Œæ–¹æ‰“å‡ºçš„ç‰Œæ˜¯å¦æœ‰æŠ¢å¤ºä¸»åŠ¨æƒçš„æ„å›¾(e.g. æ˜¯å¦æ˜¯å¤§ç‰Œ)è¿›è¡Œåˆ¤æ–­ 
 {
 	if (a.cat=="single") 
 		if (a.p1<12) return 0;
@@ -684,7 +710,8 @@ double is_big(const action &a)//¶ÔµĞ·½´ò³öµÄÅÆÊÇ·ñÓĞÇÀ¶áÖ÷¶¯È¨µÄÒâÍ¼(e.g. ÊÇ·ñÊÇ
 		else if (a.p1<11) return 0.7;
 	return 1;
 }
-hand update_hand(int *remain,const hand &h)//ÔÚ¾ö¶¨²ğÅÆºó£¬ÊÖÅÆĞÅÏ¢´æ·ÅÔÚremain[]ÀïÃæ£¬ÔÚÕâÀïÖØĞÂÀíÊÖÅÆ 
+
+hand update_hand(int *remain,const hand &h)//åœ¨å†³å®šæ‹†ç‰Œåï¼Œæ‰‹ç‰Œä¿¡æ¯å­˜æ”¾åœ¨remain[]é‡Œé¢ï¼Œåœ¨è¿™é‡Œé‡æ–°ç†æ‰‹ç‰Œ 
 {
 	hand temph;
 	memcpy(temph.rec,h.rec,4*MAX_point),memcpy(temph.remain,remain,4*MAX_point);
@@ -693,7 +720,8 @@ hand update_hand(int *remain,const hand &h)//ÔÚ¾ö¶¨²ğÅÆºó£¬ÊÖÅÆĞÅÏ¢´æ·ÅÔÚremain[
 	attribute(temph,1,temph.maximize_single);//d8g(a_optimal);system("pause");
 	return a_optimal;
 }
-double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//³öÕ¨µ¯£¬Èç¹ûÃ»ÓĞÕ¨µ¯¿É³ö£¬·µ»Ø-INF 
+
+double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//å‡ºç‚¸å¼¹ï¼Œå¦‚æœæ²¡æœ‰ç‚¸å¼¹å¯å‡ºï¼Œè¿”å›-INF 
 {
 	int i,j,optimal=0;
 	double maxpts=-INF;
@@ -714,7 +742,7 @@ double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//³öÕ¨µ¯£¬
 		
 		update_hand(remain,h);
 		double pts=BIG_bonus+a_optimal.pts+c_bomb/2;
-		if (pts>maxpts) maxpts=pts,optimal=14;//ÔÚÓĞ¶àÖØÕ¨µ¯·½·¨µÄÊ±ºò£¬ÕÒ×îºÃµÄ³öÕ¨µ¯·½Ê½ 
+		if (pts>maxpts) maxpts=pts,optimal=14;//åœ¨æœ‰å¤šé‡ç‚¸å¼¹æ–¹æ³•çš„æ—¶å€™ï¼Œæ‰¾æœ€å¥½çš„å‡ºç‚¸å¼¹æ–¹å¼ 
 		
 		remain[14]++,remain[15]++;
 	}
@@ -732,10 +760,11 @@ double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//³öÕ¨µ¯£¬
 	}
 	return -INF;
 }
-action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)//²ğÈı´ø²¢¿¼ÂÇ´òÕ¨µ¯£¬ÒÔÏÂÍ¬Àí 
-//use_bomb:ÊÇ·ñ¿¼ÂÇÕ¨µ¯ 
+
+action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)//æ‹†ä¸‰å¸¦å¹¶è€ƒè™‘æ‰“ç‚¸å¼¹ï¼Œä»¥ä¸‹åŒç† 
+//use_bomb:æ˜¯å¦è€ƒè™‘ç‚¸å¼¹ 
 {
-	int i,j,k,optimal1=0,optimal2=0;//optimal1:ÈıÕÅ,optimal2:´øµÄÅÆ 
+	int i,j,k,optimal1=0,optimal2=0;//optimal1:ä¸‰å¼ ,optimal2:å¸¦çš„ç‰Œ 
 	double maxpts=-INF;
 	for (i=pre.p1+1; i<=13; i++)
 		for (j=1; j<=13; j++)
@@ -754,7 +783,7 @@ action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use
 	action act_clone;
 	double bombpts=def_bomb(remain,h_clone,act_clone);
 	bool useBomb=0;
-	if (use_bomb&&bombpts>maxpts) maxpts=bombpts,useBomb=1;//ÔÚ´òÕ¨µ¯ºÍ²ğÈı´øÖ®¼äÕÒÆÀ·Ö×î´óµÄ×éºÏ 
+	if (use_bomb&&bombpts>maxpts) maxpts=bombpts,useBomb=1;//åœ¨æ‰“ç‚¸å¼¹å’Œæ‹†ä¸‰å¸¦ä¹‹é—´æ‰¾è¯„åˆ†æœ€å¤§çš„ç»„åˆ 
 	
 	if (maxpts==-INF||(maxpts<h.pts-0.5&&maxpts<6666&&!alarm)) return {"N",0,0,0};
 	if (useBomb)
@@ -768,6 +797,7 @@ action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use
 		return {"tri",optimal1,pre.p2,0};
 	}
 }
+
 action split_straight(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal;
@@ -805,6 +835,7 @@ action split_straight(int *remain,const action &pre,hand &h,bool alarm,const boo
 		return {"straight",optimal,pre.p2,0};
 	}
 }
+
 action split_strpair(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal;
@@ -842,6 +873,7 @@ action split_strpair(int *remain,const action &pre,hand &h,bool alarm,const bool
 		return {"strpair",optimal,pre.p2,0};
 	}
 }
+
 action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal=0,opt_attach[4]={0,0,0,0};
@@ -854,7 +886,7 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 			for (j=i,k=0; remain[j]>=3&&j<13&&k<pre.p2; j++) k++;
 			if (k==pre.p2)
 			{
-				if (pre.p3==-1)//ÉÏÒ»ÊÖ·É»ú²»´ø 
+				if (pre.p3==-1)//ä¸Šä¸€æ‰‹é£æœºä¸å¸¦ 
 				{
 					for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]-=3;
 					
@@ -866,7 +898,7 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 					for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]+=3;
 					continue;
 				}
-				//ÉÏÒ»ÊÖ·É»ú´øµ¥/¶Ô 
+				//ä¸Šä¸€æ‰‹é£æœºå¸¦å•/å¯¹ 
 				for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]-=3;
 				
 				for (j=1; j<=13; j++)
@@ -900,7 +932,7 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 			for (j=i,k=0; remain[j]>=3&&j<13&&k<pre.p2; j++) k++;
 			if (k==pre.p2)
 			{
-				if (pre.p3==-1)//·É»ú²»´ø 
+				if (pre.p3==-1)//é£æœºä¸å¸¦ 
 				{
 					for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]-=3;
 					
@@ -912,7 +944,7 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 					for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]+=3;
 					continue;
 				}
-				//·É»ú´øµ¥/¶Ô 
+				//é£æœºå¸¦å•/å¯¹ 
 				for (j=i,k=1; k<=pre.p2; j++,k++) remain[j]-=3;
 				
 				for (j=1; j<=14; j++)
@@ -958,7 +990,8 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 		return {"plane",optimal,pre.p2,pre.p3};
 	}
 }
-action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:ÉÏÒ»ÊÖµÄ´òÁËÊ²Ã´ÅÆ; id:¸Õ²Å³öÅÆÕßµÄÉí·İ 
+
+action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:ä¸Šä¸€æ‰‹çš„æ‰“äº†ä»€ä¹ˆç‰Œ; id:åˆšæ‰å‡ºç‰Œè€…çš„èº«ä»½ 
 {
 	int i,j,k,remain[MAX_point],nonsense[MAX_point];
 	int last=decipher(player[id],nonsense);
@@ -968,7 +1001,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 	{
 		if (pre.cat=="single")
 		{//if (pre.p1==13) {cout<<"E???";system("pause");}
-			if (((id>0)^(h.turn>0)==0)&&pre.p1>=13&&h.pts<GAME_OVER) return {"N",0,0,0};//²»ÄÜÑ¹¶ÓÓÑµÄ´óÅÆ 
+			if (((id>0)^(h.turn>0)==0)&&pre.p1>=13&&h.pts<GAME_OVER) return {"N",0,0,0};//ä¸èƒ½å‹é˜Ÿå‹çš„å¤§ç‰Œ 
 			bool fl=0;
 			for (i=pre.p1+1; i<=12; i++)
 				if (h.single[i]) {fl=1; break;}
@@ -1026,7 +1059,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 		}
 		if (pre.cat=="pair")
 		{
-			if (!((id>0)^(h.turn>0))&&pre.p1>=13&&h.pts<GAME_OVER) {return {"N",0,0,0};}//²»ÄÜÑ¹¶ÓÓÑµÄ´óÅÆ
+			if (!((id>0)^(h.turn>0))&&pre.p1>=13&&h.pts<GAME_OVER) {return {"N",0,0,0};}//ä¸èƒ½å‹é˜Ÿå‹çš„å¤§ç‰Œ
 			bool fl=0;
 			for (i=pre.p1+1; i<=13; i++)
 				if (h.pair[i]) {fl=1; break;}
@@ -1067,7 +1100,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 				if (bombpts>maxpts) maxpts=bombpts,useBomb=1;
 				//cout<<"EE"<<maxpts;system("pause");
 				if (maxpts==-INF||(maxpts<h.pts-0.5&&maxpts<6666&&!alarm)) return {"N",0,0,0};
-				//²»³öÅÆµÄÌõ¼ş£ºÎŞÅÆ¿É³ö,ÓĞÅÆ³öµ«ÊÇÌ«ÀÃ£¬¶øÇÒÃ»ÓĞ±¨¾¯¡¢²»ÄÜ¾øÉ± 
+				//ä¸å‡ºç‰Œçš„æ¡ä»¶ï¼šæ— ç‰Œå¯å‡º,æœ‰ç‰Œå‡ºä½†æ˜¯å¤ªçƒ‚ï¼Œè€Œä¸”æ²¡æœ‰æŠ¥è­¦ã€ä¸èƒ½ç»æ€ 
 				if (useBomb)
 				{
 					h=h_clone;
@@ -1083,7 +1116,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 		}
 		if (pre.cat=="tri")
 		{
-			if (!((id>0)^(h.turn>0))&&pre.p1>=8&&h.pts<GAME_OVER) return {"N",0,0,0};//ÊÇ¶ÓÓÑ´òµÄ¾ÍÊÖÏÂÁôÇé
+			if (!((id>0)^(h.turn>0))&&pre.p1>=8&&h.pts<GAME_OVER) return {"N",0,0,0};//æ˜¯é˜Ÿå‹æ‰“çš„å°±æ‰‹ä¸‹ç•™æƒ…
 			
 			if (find_tri(h,act,pre.p1+1,13,{"N",0,0,0},pre.p2)) {h.tri[act.p1]=0,h.pts-=pts_tri(act.p1,pre.p2); return act;}
 			else{
@@ -1165,7 +1198,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 			}
 		}
 	}
-	else if (h.policy==-1)//±»¶¯³öÅÆ 
+	else if (h.policy==-1)//è¢«åŠ¨å‡ºç‰Œ 
 	{
 		if (!((id>0)^(h.turn>0))) return {"N",0,0,0};
 		if (pre.cat=="single")
@@ -1224,7 +1257,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 					if (h.tri[i]&&attach(h.tri[i])==pre.p2) {h.tri[i]=0; return {"tri",i,pre.p2,0};}
 				
 				decipher(h,remain);
-				return split_tri(remain,pre,h,true);//¾¡Á¿Ñ¹ËÀ 
+				return split_tri(remain,pre,h,true);//å°½é‡å‹æ­» 
 			}
 			else{
 				for (i=pre.p1+1; i<=min(pre.p1+3,13); i++)
@@ -1235,7 +1268,8 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 	}
 }
 
-int tot(int x){return x<=13?4:1;}
+int tot(int x){return x<=13?4:1;}//è¿”å›ç‚¹æ•°ä¸ºxçš„ç‰Œæ€»å…±æœ‰å¤šå°‘å¼ 
+
 int main()
 {
 	srand((int)time(NULL));
@@ -1246,7 +1280,7 @@ int main()
 		action act,lastact;
 		for (j=0; j<3; j++) init(player[j],j);
 		
-		int H[3][20],num[54],bigs[3]={0,0,0},lord;//ÕâÒ»¶Î±íÊ¾Ëæ»ú·¢ÅÆ 
+		int H[3][20],num[54],bigs[3]={0,0,0},lord;//è¿™ä¸€æ®µè¡¨ç¤ºéšæœºå‘ç‰Œ 
 		bool fl[54];
 		memset(fl,0,sizeof(fl));
 		for (i=1; i<=15; i++)
@@ -1284,7 +1318,7 @@ int main()
 		cout<<"Player 1:\n"; decipher(player[1],former,true); cout<<"Player 2:\n"; decipher(player[2],former,true);
 		system("pause");
 
-//		cout<<"input the landlord's hand:";   //ÕâÒ»¶ÎÓÉÓÃ»§ÊäÈëÊÖÅÆµ÷ÊÔ,1~11±íÊ¾3~K; 12~13±íÊ¾A,2; 14,15:joker¡£ 
+//		cout<<"input the landlord's hand:";   //è¿™ä¸€æ®µç”±ç”¨æˆ·è¾“å…¥æ‰‹ç‰Œè°ƒè¯•,1~11è¡¨ç¤º3~K; 12~13è¡¨ç¤ºA,2; 14,15:jokerã€‚ 
 //		for (i=1; i<=20; i++)
 //		{
 //			cin>>x;
@@ -1306,14 +1340,14 @@ int main()
 //		a_optimal.pts=-INF,attribute(player[1],1),player[1]=a_optimal;
 //		a_optimal.pts=-INF,attribute(player[2],1),player[2]=a_optimal;
 		
-		//ÕâÒ»¶Î¸ºÔğ´òÅÆ 
+		//è¿™ä¸€æ®µè´Ÿè´£æ‰“ç‰Œ 
 		for (i=0; true; i=(i+1)%3)
 		{
 			decipher(player[i],former);
 			printf("Player %d:\n",i);
-			if (i==lastid)//´ËÊ±Ïàµ±ÓÚÒ»ÂÖ³öÅÆ½áÊø£¬ĞèÒªÖØĞÂÀíÅÆ.
+			if (i==lastid)//æ­¤æ—¶ç›¸å½“äºä¸€è½®å‡ºç‰Œç»“æŸï¼Œéœ€è¦é‡æ–°ç†ç‰Œ.
 			{
-				if (i>0&&decipher(player[0],latter)<=1)//µØÖ÷±¨µ¥ 
+				if (i>0&&decipher(player[0],latter)<=1)//åœ°ä¸»æŠ¥å• 
 				{
 					player[0].policy=player[2].policy=player[1].policy=1;
 					reattribute(player[0]);
@@ -1325,12 +1359,12 @@ int main()
 					player[0].policy=player[2].policy=player[1].policy=1;
 					reattribute(player[1]);
 					reattribute(player[2]);
-					if (i==0&&(decipher(player[1],latter)<=1||decipher(player[2],latter)<=1))//Å©Ãñ±¨µ¥ 
+					if (i==0&&(decipher(player[1],latter)<=1||decipher(player[2],latter)<=1))//å†œæ°‘æŠ¥å• 
 						{reattribute(player[0],true),player[0].maximize_single=true;}
 					else
 						reattribute(player[0]);
 					if (player[1].pts<3&&player[1].pts<=player[2].pts-2) player[1].policy=-1;
-					if (player[2].pts>=TRY_TO_WIN) player[1].policy=1;//Èç¹û¶ÓÓÑ×¼±¸Ê¤Àû,ÄÇÃ´Òª×¼±¸ºÃ¸¨Öú¡£ 
+					if (player[2].pts>=TRY_TO_WIN) player[1].policy=1;//å¦‚æœé˜Ÿå‹å‡†å¤‡èƒœåˆ©,é‚£ä¹ˆè¦å‡†å¤‡å¥½è¾…åŠ©ã€‚ 
 				}
 				
 				act=decide_off(player[i]); lastact=act,lastid=i;
@@ -1354,7 +1388,7 @@ int main()
 			{
 				if (j==i) continue;
 				for (k=1; k<=15; k++)
-					player[j].rec[k]+=latter[k]-former[k];//¸üĞÂ¼ÇÅÆÆ÷ĞÅÏ¢ 
+					player[j].rec[k]+=latter[k]-former[k];//æ›´æ–°è®°ç‰Œå™¨ä¿¡æ¯ 
 			}
 		}
 	}
