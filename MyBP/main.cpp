@@ -54,7 +54,7 @@ int main()
                     arr[j].b(i,k)-=ave[i]*eps;
             }
 
-            matrix tmpW/*(arr[j].W.cols(),arr[j].W.rows())*/; tmpW=arr[j].W.trans();
+            matrix tmpW; tmpW=arr[j].W.trans();
             arr[j].W=arr[j].W - g * arr[j-1].out.trans() * eps;
             g=tmpW * g;
         }
