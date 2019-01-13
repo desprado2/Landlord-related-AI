@@ -5,8 +5,7 @@
 #define INF 1073741823
 using namespace std;
 
-int attach(int a){if (a==-1) return -1; return (a<=16)?1:2;}//返回带牌的类型
-
+int attach(int a){if (a==-1) return -1; return (a<=16)?1:2;}//判断带牌的类型 1:单; 2:对 
 struct action
 {
 	string cat;//catagory
@@ -33,13 +32,14 @@ void init(hand &h,const int turn,const bool clear_all=true)//initialize the hand
 {
 	memset(h.single,0,4*MAX_point),memset(h.pair,0,4*MAX_point),memset(h.tri,0,4*MAX_point),memset(h.straight,0,4*MAX_point),\
 	memset(h.strpair,0,4*MAX_point),memset(h.plane,0,4*MAX_point),memset(h.bomb,0,8*MAX_point),memset(h.remain,0,4*MAX_point);
-	if (clear_all)//clear_all:表示是否要初始化记牌器的信息
+	if (clear_all)//clear_all:表示是否要初始化记牌器的信息 
 	{
 		for (int i=1; i<=13; i++) h.rec[i]=4; h.rec[15]=h.rec[14]=1;
 		h.maximize_single=false;
 	}
 	h.turn=turn;
 }
+
 void d8g(const hand &a_optimal)//输出理牌结果 
 {
 	for (int i=1; i<=15; i++) cout<<a_optimal.remain[i]<<' ';
@@ -141,6 +141,7 @@ double pts_tri(const int i,const int SortofAttach)//单个triple的估价
 {
 	return (i<=7)?(SortofAttach==-1?0.4:0.5):(SortofAttach==-1?0.65:0.85);
 }
+
 double c_triple(const hand &a)//triple的总估价 
 {
 	double ret=0;
@@ -149,17 +150,20 @@ double c_triple(const hand &a)//triple的总估价
 }
 
 double c_straight(const int len){return len/5.0*1.8;}//单个straight的估价 
-
 double c_strpair(const int len){return len/3.0*1.8;}//单个strpair的估价 
-
 double c_plane(const int attach){return (attach==-1?0.7:0.9);}//单个plane的估价,注意plane作为稳定的过牌手段(不容易被压)，评分高于triple 
-
 const double c_fours=1.8*6.0/5.0;//单个四带二估价 
 const double c_bomb=2.5;//单个炸弹估价 
 
 double c_all(hand &a,const bool maximize_single)//计算总牌力; maximize_single=1:在敌方报单的时候，要让第二大的单牌尽可能大。 
 {
+	//d8g(a);system("pause");
 	int i,j,k,turns=0;
+	
+	//以下判断能否一次出完 
+	for (i=1; i<=15; i++)
+		turns+=a.single[i]+a.pair[i]+(a.tri[i]!=0)+(a.bomb[i][0]!=0)+(a.plane[i]!=0)+(a.straight[i]!=0)+(a.strpair[i]!=0);
+	if (turns<=1) {a.policy=1; return GAME_OVER;}//一次出完的必须资磁。
 	
 	if (maximize_single)
 	{
@@ -175,10 +179,6 @@ double c_all(hand &a,const bool maximize_single)//计算总牌力; maximize_sing
 		return -TRY_TO_WIN*(16-i);
 	}//特殊处理报单 
 	
-	//以下判断能否一次出完 
-	for (i=1; i<=15; i++)
-		turns+=a.single[i]+a.pair[i]+(a.tri[i]!=0)+(a.bomb[i][0]!=0)+(a.plane[i]!=0)+(a.straight[i]!=0)+(a.strpair[i]!=0);
-	if (turns<=1) {a.policy=1; return GAME_OVER;}//一次出完的必须资磁。
 	//以下判部分断是否能够只留最多一手小牌即可杀死比赛。 
 	int c,cc=0,tmp;//c:每个牌型的"净大牌数量"(绝对优势的大牌数量-小牌数量); cc:所有牌型的小牌数量 
 	bool noBomb=1,fl=0;//nobomb:外面没有王炸，其它炸弹不考虑。 fl:记录能否杀死比赛 
@@ -229,7 +229,7 @@ double c_all(hand &a,const bool maximize_single)//计算总牌力; maximize_sing
 	
 	if (noBomb&&cc<=1) {a.policy=2,a.minimal=mins; fl=1;}//能终结比赛的必须资磁。
 	
-	//以下为正常计算
+	//正常计算
 	
 	double ret=c_single(a)+c_pair(a)+c_triple(a)+(fl?TRY_TO_WIN:0);
 	for (i=1; i<=14; i++)
@@ -245,10 +245,9 @@ double c_all(hand &a,const bool maximize_single)//计算总牌力; maximize_sing
 }
 
 hand a_optimal;//由于attribute()没有写好接口, 这个全局变量用来存储attribute后最优牌型组合 
-
 bool in_interval(int a,int lh,int rh){return a>=lh&&a<=rh;}//判断a是否在区间[lh,rh]内 
 
-void attribute(hand cur,int step,const bool maximize_single=false)
+void attribute(hand cur,int step,const bool maximize_single=false)//用深搜的方法找出最优牌型分配方案 
 //case step:1:straight; 2:strpair; 3:bomb; 4:plane; 5:triple; 6:single and pair 
 {
 //	d8g(cur),system("pause");
@@ -511,7 +510,6 @@ void attribute(hand cur,int step,const bool maximize_single=false)
 		}
 	}
 }
-
 void reattribute(hand &h,const bool maximize_single=false)//对已经理好但是打出了若干张牌的手牌重新理牌 
 {
 	int temp[MAX_point];
@@ -533,7 +531,6 @@ bool find_single(const hand &h,action &temp,int lh,int rh,const action &minimal=
 		}
 	return 0;
 }
-
 bool find_pair(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0})
 //minimal:舍去的最小牌型
 {
@@ -546,7 +543,6 @@ bool find_pair(const hand &h,action &temp,int lh,int rh,const action &minimal={"
 		}
 	return 0;
 }
-
 bool find_straight(const hand &h,action &temp,int lh,int rh,const action &minimal={"",0,0,0},const int pat=0)
 //minimal:舍去的最小牌型;pat:指定长度 
 {
@@ -560,7 +556,6 @@ bool find_straight(const hand &h,action &temp,int lh,int rh,const action &minima
 		}
 	return 0;
 }
-
 bool find_strpair(const hand &h,action &temp,int lh,int rh,const int pat=0)//pat:指定长度 
 {
 	for (int i=lh; i<=rh; i++)
@@ -585,8 +580,7 @@ bool find_tri(const hand &h,action &temp,int lh,int rh,const action &minimal={"N
 		}
 	return 0;
 }
-
-bool feigei(const hand &h,action &temp,int lh,int rh)//寻找飞机
+bool feigei(const hand &h,action &temp,int lh,int rh)
 {
 	int len,i,j;
 	for (i=lh; i<=rh; i++)
@@ -598,7 +592,6 @@ bool feigei(const hand &h,action &temp,int lh,int rh)//寻找飞机
 		}
 	return 0;
 }
-
 bool find_bomb(const hand &h,action &temp,int lh,int rh)
 {
 	for (int i=lh; i<=rh; i++)
@@ -609,7 +602,6 @@ bool find_bomb(const hand &h,action &temp,int lh,int rh)
 		}
 	return 0;
 }
-
 bool find_fours(const hand &h,action &temp,int lh,int rh,const int pat=0)
 //pat:带牌的类型(1,2) 
 {
@@ -693,18 +685,17 @@ action decide_off(hand &h)//on the offensive; -1:被动出牌状态下要考虑�
 	}
 }
 
-const double BIG_bonus=1.1;//打出一手大牌的分数加成
-
-double is_big(const action &a)//对敌方打出的牌是否有抢夺主动权的意图(e.g. 是否是大牌)进行判断 
+const double BIG_bonus=1.1;
+double is_big(const action &a,int *rec=nullptr)//对敌方打出的牌是否有抢夺主动权的意图(e.g. 是否是大牌)进行判断 
 {
-	if (a.cat=="single") 
+	if (a.cat=="single")
 		if (a.p1<12) return 0;
-		else if (a.p1==12) return 0.5;
-		else if (a.p1<=14) return 0.8;
+		else if (a.p1==12 && rec[13]>0) return 0.5;
+		else if (a.p1==14&&rec[15] || a.p1==13&&(rec[14]>0)+(rec[15]>0)>0 || a.p1==12&&((rec[13]>0)+(rec[14]>0)+(rec[15]>0)>0))return 0.8;
 	if (a.cat=="pair")
 		if (a.p1<10) return 0;
-		else if (a.p1<12) return 0.5;
-		else if (a.p1==12) return 0.8;
+		else if (a.p1<12) return ((rec[12]>=2)+(rec[13]>=2)+(a.p1==10&&rec[11]>=2)>=2?0.5:0.8);
+		else if (a.p1==12) return ((rec[13]>=2)?0.8:1);
 	if (a.cat=="tri")
 		if (a.p1<8) return 0;
 		else if (a.p1<11) return 0.7;
@@ -721,7 +712,7 @@ hand update_hand(int *remain,const hand &h)//在决定拆牌后，手牌信息�
 	return a_optimal;
 }
 
-double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//出炸弹，如果没有炸弹可出，返回-INF 
+double def_bomb(int *remain,hand &h,action &act,const int last_bomb=0)//defensive bomb.出炸弹，如果没有炸弹可出，返回-INF 
 {
 	int i,j,optimal=0;
 	double maxpts=-INF;
@@ -773,7 +764,7 @@ action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use
 			remain[i]-=3,remain[j]-=max(pre.p2,0);
 		
 			update_hand(remain,h);
-			double pts=is_big({"tri",i,pre.p2,0})*BIG_bonus+a_optimal.pts+pts_tri(i,pre.p2);
+			double pts=is_big({"tri",i,pre.p2,0},h.rec)*BIG_bonus+a_optimal.pts+pts_tri(i,pre.p2);
 			if (pts>maxpts) maxpts=pts,optimal1=i,optimal2=j;
 			
 			remain[i]+=3,remain[j]+=max(pre.p2,0);
@@ -797,7 +788,6 @@ action split_tri(int *remain,const action &pre,hand &h,bool alarm,const bool use
 		return {"tri",optimal1,pre.p2,0};
 	}
 }
-
 action split_straight(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal;
@@ -835,7 +825,6 @@ action split_straight(int *remain,const action &pre,hand &h,bool alarm,const boo
 		return {"straight",optimal,pre.p2,0};
 	}
 }
-
 action split_strpair(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal;
@@ -873,7 +862,6 @@ action split_strpair(int *remain,const action &pre,hand &h,bool alarm,const bool
 		return {"strpair",optimal,pre.p2,0};
 	}
 }
-
 action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool use_bomb=true)
 {
 	int i,j,k,optimal=0,opt_attach[4]={0,0,0,0};
@@ -991,7 +979,7 @@ action split_plane(int *remain,const action &pre,hand &h,bool alarm,const bool u
 	}
 }
 
-action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:上一手的打了什么牌; id:刚才出牌者的身份 
+action decide_def(const action &pre,const int id,hand &h)//on the defensive. pre:上一手的打了什么牌; id:刚才出牌者的身份 
 {
 	int i,j,k,remain[MAX_point],nonsense[MAX_point];
 	int last=decipher(player[id],nonsense);
@@ -1009,13 +997,11 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 			if (fl)
 			{
 				if (c_single(h)>0)
-					for (i=12; i>pre.p1; i--)
-					{
+					for (i=12; i>pre.p1; i--){
 						if (h.single[i]) {h.single[i]--; return {"single",i,0,0};}
 					}
 				else
-					for (i=pre.p1+1; i<=12; i++)
-					{
+					for (i=pre.p1+1; i<=12; i++){
 						if (h.single[i]) {h.single[i]--; return {"single",i,0,0};}
 					} 
 			}
@@ -1030,7 +1016,8 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 					remain[i]--;
 					
 					update_hand(remain,h);
-					double pts=is_big({"single",i,0,0})*BIG_bonus+a_optimal.pts;
+					double pts=is_big({"single",i,0,0},h.rec)*BIG_bonus+a_optimal.pts;
+					//d8g(a_optimal);cout<<is_big({"single",i,0,0},h.rec)<<endl; system("pause");
 					if (pts>maxpts) maxpts=pts,optimal=i;
 					
 					remain[i]++;
@@ -1086,7 +1073,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 					remain[i]-=2;
 					
 					update_hand(remain,h);
-					double pts=is_big({"pair",i,0,0})*BIG_bonus+a_optimal.pts;
+					double pts=is_big({"pair",i,0,0},h.rec)*BIG_bonus+a_optimal.pts;
 					if (pts>maxpts) maxpts=pts,optimal=i;
 					
 					remain[i]+=2;
@@ -1203,7 +1190,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 		if (!((id>0)^(h.turn>0))) return {"N",0,0,0};
 		if (pre.cat=="single")
 		{
-			if (is_big(pre)>0||last<=2)
+			if (is_big(pre,h.rec)>0||last<=2)
 			{
 				for (i=pre.p1+1; i<=15; i++)
 					if (h.single[i]) {h.single[i]--; return {"single",i,0,0};}
@@ -1227,7 +1214,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 		}
 		if (pre.cat=="pair")
 		{
-			if (is_big(pre)>0||last<=1)
+			if (is_big(pre,h.rec)>0||last<=1)
 			{
 				for (i=pre.p1+1; i<=13; i++)
 					if (h.pair[i]) {h.pair[i]--; return {"pair",i,0,0};}
@@ -1251,7 +1238,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 		}
 		if (pre.cat=="tri")
 		{
-			if (is_big(pre)>0||last<=2)
+			if (is_big(pre,h.rec)>0||last<=2)
 			{
 				for (i=pre.p1+1; i<=13; i++)
 					if (h.tri[i]&&attach(h.tri[i])==pre.p2) {h.tri[i]=0; return {"tri",i,pre.p2,0};}
@@ -1268,7 +1255,7 @@ action decide_def(const action &pre,const int id,hand &h)//on the defensive.pre:
 	}
 }
 
-int tot(int x){return x<=13?4:1;}//返回点数为x的牌总共有多少张
+int tot(int x){return x<=13?4:1;}//返回有几张点数为x的牌 
 
 int main()
 {
@@ -1336,7 +1323,7 @@ int main()
 //			cin>>x;
 //			player[2].rec[x]--,player[2].remain[x]++;
 //		}
-//		a_optimal.pts=-INF,attribute(player[0],1),player[0]=a_optimal;
+//		a_optimal.pts=-INF,attribute(player[0],1),player[0]=a_optimal; //d8g(a_optimal); system("pause");
 //		a_optimal.pts=-INF,attribute(player[1],1),player[1]=a_optimal;
 //		a_optimal.pts=-INF,attribute(player[2],1),player[2]=a_optimal;
 		
